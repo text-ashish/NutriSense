@@ -21,6 +21,7 @@ logs/
 
 # MacOS
 .DS_Store
+.history/
 
 # Build outputs
 dist/
