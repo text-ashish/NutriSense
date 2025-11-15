@@ -1,16 +1,27 @@
-# Python virtual environment
+# Node.js dependencies (frontend + backend)
+node_modules/
+frontend/node_modules/
+backend/node_modules/
+
+# Python virtual environments
 env/
+venv/
 *.pyc
 __pycache__/
 
-# Local data files (like ChromaDB)
+# Local vector DB or data
 .chromadb/
 
 # VSCode settings
 .vscode/
 
-# History/log files
-.history/
+# Logs
+*.log
+logs/
 
-# OS-specific files (optional)
+# MacOS
 .DS_Store
+
+# Build outputs
+dist/
+build/

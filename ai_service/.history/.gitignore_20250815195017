@@ -1,0 +1,16 @@
+# Python virtual environment
+env/
+*.pyc
+__pycache__/
+
+# Local data files (like ChromaDB)
+.chromadb/
+
+# VSCode settings
+.vscode/
+
+# History/log files
+.history/
+
+# OS-specific files (optional)
+.DS_Store
