@@ -5,7 +5,7 @@ backend/node_modules/
 
 # Python virtual environments
 env/
-.env/
+.env
 venv/
 ai_service/env311/
 *.pyc
