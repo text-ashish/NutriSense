@@ -85,7 +85,7 @@ class RecipeRequest(BaseModel):
     fat: float = 0
 
 # --- Endpoints ---
-@app.post("/get_recipe")
+@app.post("/api/recipe")
 def get_recipe(request: RecipeRequest):
     print("[Python DEBUG] /get_recipe endpoint hit")
     return personalized_recipe(
