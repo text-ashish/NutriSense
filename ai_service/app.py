@@ -5,6 +5,7 @@ import time
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+import uvicorn
 
 # Load environment variables at the top
 load_dotenv() 
@@ -15,12 +16,10 @@ from src.embeddings import get_embeddings
 from src.vectorstore import build_vectorstore, retrieve, collection
 from src.rag import generate_response
 
-# --- Initialize FastAPI App (Only Once) ---
+# --- Initialize FastAPI App ---
 app = FastAPI(title="NutriSense API")
 
 # --- CORS Middleware ---
-# This server is only called by your Node.js server, not the browser directly.
-# Setting origins to "*" is safe and simple for this internal communication.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -38,12 +37,10 @@ def prepare():
     embeddings = get_embeddings(texts)
     print("⚙️ Rebuilding vector store from scratch...")
     build_vectorstore(df, embeddings)
-
     return df
 
 df = prepare()
 print("✅ Data preparation complete.")
-
 
 # --- Main function ---
 def personalized_recipe(query, dietary, health, allergens, calories, protein, fat):
@@ -77,7 +74,7 @@ def personalized_recipe(query, dietary, health, allergens, calories, protein, fa
     latency = round(time.time() - start_time, 2)
     return {"latency": latency, "recommendation": answer}
 
-# --- FastAPI setup ---
+# --- FastAPI request model ---
 class RecipeRequest(BaseModel):
     query: str
     dietary: str = "None"
@@ -87,10 +84,10 @@ class RecipeRequest(BaseModel):
     protein: float = 0
     fat: float = 0
 
+# --- Endpoints ---
 @app.post("/get_recipe")
 def get_recipe(request: RecipeRequest):
-    # --- NEW DEBUG PRINT ---
-    print("[Python DEBUG] Checkpoint 4: /get_recipe endpoint hit successfully.")
+    print("[Python DEBUG] /get_recipe endpoint hit")
     return personalized_recipe(
         request.query,
         request.dietary,
@@ -105,4 +102,7 @@ def get_recipe(request: RecipeRequest):
 def read_root():
     return {"status": "NutriSense API is running"}
 
-    # uvicorn app:app --reload --host 0.0.0.0 --port 8001
+# --- Run Uvicorn using Render's port ---
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("app:app", host="0.0.0.0", port=port, reload=True)
