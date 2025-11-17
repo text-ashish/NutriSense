@@ -16,7 +16,7 @@ app.use((req, res, next) => {
 
 // --- CORS Configuration ---
 const corsOptions = {
-  origin: ["http://localhost:5173", "https://nutriscense-frontend.netlify.app"],
+  origin: ["http://localhost:5173", "https://nutriscense-frontend.netlify.app"]
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
   allowedHeaders: "Origin, X-Requested-With, Content-Type, Accept, Authorization",
   credentials: true,
@@ -29,7 +29,7 @@ app.use(express.json());
 app.post("/api/recipe", async (req, res) => {
   console.log("[Node DEBUG] Checkpoint 2: POST /api/recipe hit. Forwarding to Python...");
   try {
-    const response = await axios.post("http://nutrisense-production-94a7.up.railway.app/get_recipe", req.body);
+    const response = await axios.post("http://nutrisense-production-94a7.up.railway.app/get_recipe/get_recipe", req.body);
     console.log("[Node DEBUG] Checkpoint 3: Received response from Python successfully.");
     res.json(response.data);
   } catch (err) {
