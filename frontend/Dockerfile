@@ -1,16 +1,18 @@
-FROM node:18
+# Build stage
+FROM node:22 AS builder
 
 WORKDIR /app
 
-# copy ONLY the frontend package.json files
 COPY frontend/package*.json ./
-
 RUN npm install
 
-# copy the entire frontend folder
 COPY frontend/. .
-
 RUN npm run build
 
+# Serve stage
+FROM nginx:1.25
+
+COPY --from=builder /app/dist /usr/share/nginx/html
+
 EXPOSE 80
-CMD ["npm", "run", "preview"]
+CMD ["nginx", "-g", "daemon off;"]

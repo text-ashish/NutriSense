@@ -2,10 +2,13 @@ FROM python:3.11
 
 WORKDIR /app
 
-COPY requirements.txt .
+# Copy the requirements file from ai_service folder
+COPY ai_service/requirements.txt .
+
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+# Copy the ai_service code
+COPY ai_service/. .
 
 EXPOSE 8001
 
