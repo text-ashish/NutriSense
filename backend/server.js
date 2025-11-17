@@ -29,7 +29,7 @@ app.use(express.json());
 app.post("/api/recipe", async (req, res) => {
   console.log("[Node DEBUG] Checkpoint 2: POST /api/recipe hit. Forwarding to Python...");
   try {
-    const response = await axios.post("http://127.0.0.1:8001/get_recipe", req.body);
+    const response = await axios.post("https://huggingface.co/spaces/text-ashish/ai_service/get_recipe", req.body);
     console.log("[Node DEBUG] Checkpoint 3: Received response from Python successfully.");
     res.json(response.data);
   } catch (err) {

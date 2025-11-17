@@ -54,7 +54,7 @@ export default function RecipeForm() {
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      const response = await axios.post("http://localhost:5001/api/recipe", {
+      const response = await axios.post("https://nutrisense-production.up.railway.app/api/recipe", {
         query,
         dietary,
         health,
