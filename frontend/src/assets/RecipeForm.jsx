@@ -6,7 +6,7 @@ export default function RecipeForm() {
   const [result, setResult] = useState(null);
 
   const handleSubmit = async () => {
-    const response = await axios.post("http://localhost:5000/api/recipe", {
+    const response = await axios.post("https://nutrisense-production.up.railway.app/api/recipe", {
       query,
       dietary: "None",
       health: "None",
