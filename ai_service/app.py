@@ -105,4 +105,8 @@ def get_recipe(request: RecipeRequest):
 def read_root():
     return {"status": "NutriSense API is running"}
 
-    # uvicorn app:app --reload --host 0.0.0.0 --port 8001
+if __name__ == "__main__":
+    import uvicorn, os
+    port = int(os.environ.get("PORT", 8001))
+    uvicorn.run("app:app", host="0.0.0.0", port=port)
+
