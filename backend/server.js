@@ -27,16 +27,23 @@ app.use(express.json());
 
 // --- Your API Route with a new debug log ---
 app.post("/api/recipe", async (req, res) => {
-  console.log("[Node DEBUG] Checkpoint 2: POST /api/recipe hit. Forwarding to Python...");
+  console.log("[Node DEBUG] POST /api/recipe hit. Body:", req.body);
   try {
-    const response = await axios.post("https://huggingface.co/spaces/text-ashish/ai_service/get_recipe", req.body);
-    console.log("[Node DEBUG] Checkpoint 3: Received response from Python successfully.");
+    const response = await axios.post(
+      "https://huggingface.co/spaces/text-ashish/ai_service/get_recipe",
+      req.body,
+      { headers: { "Content-Type": "application/json" } }
+    );
+    console.log("[Node DEBUG] Response from Hugging Face:", response.data);
     res.json(response.data);
   } catch (err) {
-    console.error("❌ Error forwarding request to Python service:", err.response ? err.response.data : err.message);
+    console.error("❌ Error forwarding request to Hugging Face:", err.message);
+    console.error("❌ Response status:", err.response?.status);
+    console.error("❌ Response data:", err.response?.data);
     res.status(500).json({ error: "The AI service failed to respond.", details: err.message });
   }
 });
+
 
 app.listen(PORT, () => {
   console.log(`✅ Node.js proxy server running on http://localhost:${PORT}`);
