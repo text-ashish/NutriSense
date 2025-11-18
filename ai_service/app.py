@@ -1,26 +1,58 @@
 # app.py
-from dotenv import load_dotenv
 import os
 import time
-from fastapi import FastAPI
+import pickle
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from dotenv import load_dotenv
 
-# Load environment variables at the top
-load_dotenv() 
+# --- Load Environment Variables ---
+load_dotenv()
 
-# --- Local Module Imports ---
-from src.preprocess import preprocess_recipes
+# --- Imports from your src folder ---
 from src.embeddings import get_embeddings
-from src.vectorstore import build_vectorstore, retrieve, collection
-from src.rag import generate_response
+from src.vectorstore import retrieve, generate_response, build_vectorstore
 
-# --- Initialize FastAPI App (Only Once) ---
-app = FastAPI(title="NutriSense API")
+# --- Global State ---
+ml_context = {}
 
-# --- CORS Middleware ---
-# This server is only called by your Node.js server, not the browser directly.
-# Setting origins to "*" is safe and simple for this internal communication.
+# --- Lifespan Manager ---
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Runs once on startup. Loads data and 'hydrates' the vector store.
+    """
+    artifact_path = "data/nutrisense_data.pkl"
+    print("📂 Loading pre-computed artifacts...")
+    
+    if os.path.exists(artifact_path):
+        try:
+            with open(artifact_path, "rb") as f:
+                data = pickle.load(f)
+                
+            # 1. Load DataFrame
+            ml_context["df"] = data["df"]
+            embeddings = data["embeddings"]
+            
+            # 2. Rebuild Vector Store Instantly
+            # Since we already have embeddings, this is extremely fast (milliseconds)
+            print("⚡ Hydrating vector store from pre-computed embeddings...")
+            build_vectorstore(ml_context["df"], embeddings)
+            
+            print("✅ System ready. RAM usage stable.")
+        except Exception as e:
+            print(f"❌ Error loading pickle file: {e}")
+    else:
+        print(f"❌ CRITICAL: {artifact_path} not found!")
+
+    yield
+    print("🛑 Shutting down...")
+
+# --- Initialize FastAPI ---
+app = FastAPI(title="NutriSense API", lifespan=lifespan)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -29,32 +61,31 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-DATA_PATH = "data/recipes.csv"
+class RecipeRequest(BaseModel):
+    query: str
+    dietary: str = "None"
+    health: str = "None"
+    allergens: str = ""
+    calories: float = 0
+    protein: float = 0
+    fat: float = 0
 
-# --- Prepare data ---
-def prepare():
-    df = preprocess_recipes(DATA_PATH)
-    texts = df['chunk'].tolist()
-    embeddings = get_embeddings(texts)
-    print("⚙️ Rebuilding vector store from scratch...")
-    build_vectorstore(df, embeddings)
-
-    return df
-
-df = prepare()
-print("✅ Data preparation complete.")
-
-
-# --- Main function ---
+# --- Core Logic ---
 def personalized_recipe(query, dietary, health, allergens, calories, protein, fat):
+    if "df" not in ml_context:
+         # Fallback if file load failed
+        return {"error": "Server data not loaded yet."}
+
     if not query:
         return "⚠️ Please enter a recipe name or description."
 
     exclude_allergens = [a.strip() for a in allergens.split(",")] if allergens else None
     start_time = time.time()
     
+    # Embed the user query
     query_emb = get_embeddings([query.lower()])[0]
 
+    # Retrieve
     retrieved = retrieve(
         query_embedding=query_emb,
         k=6,
@@ -63,6 +94,7 @@ def personalized_recipe(query, dietary, health, allergens, calories, protein, fa
         health_condition=health
     )
 
+    # Generate Response
     answer = generate_response(
         query,
         retrieved_metadatas=retrieved,
@@ -77,20 +109,8 @@ def personalized_recipe(query, dietary, health, allergens, calories, protein, fa
     latency = round(time.time() - start_time, 2)
     return {"latency": latency, "recommendation": answer}
 
-# --- FastAPI setup ---
-class RecipeRequest(BaseModel):
-    query: str
-    dietary: str = "None"
-    health: str = "None"
-    allergens: str = ""
-    calories: float = 0
-    protein: float = 0
-    fat: float = 0
-
 @app.post("/get_recipe")
 def get_recipe(request: RecipeRequest):
-    # --- NEW DEBUG PRINT ---
-    print("[Python DEBUG] Checkpoint 4: /get_recipe endpoint hit successfully.")
     return personalized_recipe(
         request.query,
         request.dietary,
@@ -103,10 +123,11 @@ def get_recipe(request: RecipeRequest):
 
 @app.get("/")
 def read_root():
-    return {"status": "NutriSense API is running"}
+    # Health check for Render
+    status = "ready" if "df" in ml_context else "loading"
+    return {"status": status}
 
 if __name__ == "__main__":
-    import uvicorn, os
+    import uvicorn
     port = int(os.environ.get("PORT", 8001))
     uvicorn.run("app:app", host="0.0.0.0", port=port)
-
